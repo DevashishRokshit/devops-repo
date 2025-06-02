@@ -29,10 +29,5 @@ jobs:
 
     - name: 🚀 Deploy to EC2 via SSM
       run: |
-        aws ssm send-command \
-          --document-name "AWS-RunShellScript" \
-          --comment "Deploy Flask app" \
-          --instance-ids ${{ secrets.INSTANCE_IDS }} \
-          --region ${{ secrets.AWS_REGION }} \
-          --parameters commands=["mkdir -p /home/ec2-user/app","cd /home/ec2-user/app","aws s3 cp s3://${{ secrets.S3_BUCKET }}/app.zip .","unzip -o app.zip","chmod +x startup.sh","./startup.sh"] \
-          --output text
+        aws ssm send-command --document-name "AWS-RunShellScript" --comment "Deploy Flask app" --instance-ids ${{ secrets.INSTANCE_IDS }} --region ${{ secrets.AWS_REGION }} --parameters commands=["mkdir -p /home/ec2-user/app","cd /home/ec2-user/app","aws s3 cp s3://${{ secrets.S3_BUCKET }}/app.zip .","unzip -o app.zip","chmod +x startup.sh","./startup.sh"] --output text
+        
