@@ -1,0 +1,55 @@
+name: Deploy Flask App to EC2 via SSM
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Zip application
+      run: |
+        zip -r app.zip .
+
+    - name: Send ZIP to EC2 using SSM
+      run: |
+        aws ssm send-command \
+          --document-name "AWS-RunShellScript" \
+          --comment "Prepare EC2 for file upload" \
+          --instance-ids ${{ secrets.INSTANCE_IDS }} \
+          --parameters 'commands=[
+            "mkdir -p /home/ec2-user/app"
+          ]' \
+          --output text
+
+        aws ssm send-command \
+          --document-name "AWS-RunShellScript" \
+          --comment "Deploy Flask app" \
+          --instance-ids ${{ secrets.INSTANCE_IDS }} \
+          --parameters 'commands=[
+            "cd /home/ec2-user/app",
+            "echo '${{ secrets.APP_ZIP_BASE64 }}' | base64 -d > app.zip",
+            "unzip -o app.zip",
+            "bash startup.sh"
+          ]' \
+          --output text
+
+    - name: Convert ZIP to Base64 for inline upload
+      id: encode
+      run: |
+        base64 app.zip > app.zip.b64
+        echo "APP_ZIP_BASE64<<EOF" >> $GITHUB_ENV
+        cat app.zip.b64 >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
