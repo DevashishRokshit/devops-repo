@@ -26,14 +26,14 @@ else
   echo "⚠️ requirements.txt not found, skipping pip install"
 fi
 
-# Run the Flask app with gunicorn (recommended for production)
+# Run the Flask app with gunicorn on port 80
 export FLASK_APP=app.py
 export FLASK_ENV=production
 
 # Kill existing gunicorn (if any)
-pkill gunicorn || true
+sudo pkill gunicorn || true
 
-# Start gunicorn
-nohup gunicorn --bind 0.0.0.0:5000 app:app > gunicorn.log 2>&1 &
+# Start gunicorn on port 80
+sudo nohup gunicorn --bind 0.0.0.0:80 app:app > gunicorn.log 2>&1 &
 
-echo "✅ Flask app deployed and running on port 5000"
+echo "✅ Flask app deployed and running on port 80"
