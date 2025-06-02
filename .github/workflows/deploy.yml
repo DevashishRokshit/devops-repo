@@ -2,7 +2,7 @@ name: Deploy Flask App to EC2 via SSM
 
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 jobs:
   deploy:
@@ -19,37 +19,27 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
-    - name: Zip application
+    - name: Zip application code
       run: |
         zip -r app.zip .
 
-    - name: Send ZIP to EC2 using SSM
+    - name: Upload to S3
+      run: |
+        aws s3 cp app.zip s3://${{ secrets.S3_BUCKET }}/app.zip
+
+    - name: Send SSM command to deploy
       run: |
         aws ssm send-command \
           --document-name "AWS-RunShellScript" \
-          --comment "Prepare EC2 for file upload" \
+          --comment "Deploy Flask app to EC2" \
           --instance-ids ${{ secrets.INSTANCE_IDS }} \
           --parameters 'commands=[
-            "mkdir -p /home/ec2-user/app"
-          ]' \
-          --output text
-
-        aws ssm send-command \
-          --document-name "AWS-RunShellScript" \
-          --comment "Deploy Flask app" \
-          --instance-ids ${{ secrets.INSTANCE_IDS }} \
-          --parameters 'commands=[
+            "mkdir -p /home/ec2-user/app",
             "cd /home/ec2-user/app",
-            "echo '${{ secrets.APP_ZIP_BASE64 }}' | base64 -d > app.zip",
+            "aws s3 cp s3://${{ secrets.S3_BUCKET }}/app.zip .",
             "unzip -o app.zip",
-            "bash startup.sh"
+            "chmod +x startup.sh",
+            "./startup.sh"
           ]' \
+          --region ${{ secrets.AWS_REGION }} \
           --output text
-
-    - name: Convert ZIP to Base64 for inline upload
-      id: encode
-      run: |
-        base64 app.zip > app.zip.b64
-        echo "APP_ZIP_BASE64<<EOF" >> $GITHUB_ENV
-        cat app.zip.b64 >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
