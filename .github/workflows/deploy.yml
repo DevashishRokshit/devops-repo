@@ -9,36 +9,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: 📥 Checkout code
       uses: actions/checkout@v3
 
-    - name: Setup AWS credentials
+    - name: 🔐 Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
-    - name: Zip application
-      run: zip -r app.zip .
+    - name: 📦 Zip Flask application
+      run: |
+        zip -r app.zip .
 
-    - name: Upload ZIP to S3
+    - name: ☁️ Upload app.zip to S3
       run: |
         aws s3 cp app.zip s3://${{ secrets.S3_BUCKET }}/app.zip
 
-    - name: Copy code to EC2 via SSM
+    - name: 🚀 Deploy to EC2 via SSM
       run: |
         aws ssm send-command \
           --document-name "AWS-RunShellScript" \
           --comment "Deploy Flask app" \
           --instance-ids ${{ secrets.INSTANCE_IDS }} \
           --region ${{ secrets.AWS_REGION }} \
-          --parameters commands='[
-            "mkdir -p /home/ec2-user/app",
-            "cd /home/ec2-user/app",
-            "aws s3 cp s3://${{ secrets.S3_BUCKET }}/app.zip .",
-            "unzip -o app.zip",
-            "chmod +x startup.sh",
-            "./startup.sh"
-          ]' \
+          --parameters commands=["mkdir -p /home/ec2-user/app","cd /home/ec2-user/app","aws s3 cp s3://${{ secrets.S3_BUCKET }}/app.zip .","unzip -o app.zip","chmod +x startup.sh","./startup.sh"] \
           --output text
