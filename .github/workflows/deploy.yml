@@ -2,7 +2,7 @@ name: Deploy Flask App to EC2 via SSM
 
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 jobs:
   deploy:
