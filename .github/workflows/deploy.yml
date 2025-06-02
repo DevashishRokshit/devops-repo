@@ -25,5 +25,12 @@ jobs:
           --comment "Deploy Flask app" \
           --instance-ids ${{ secrets.INSTANCE_IDS }} \
           --region ${{ secrets.AWS_REGION }} \
-          --parameters 'commands=["mkdir -p /home/ec2-user/app","cd /home/ec2-user/app","aws s3 cp s3://${{ secrets.S3_BUCKET }}/app.zip .","unzip -o app.zip","chmod +x startup.sh","./startup.sh"]' \
+          --parameters commands='[
+            "mkdir -p /home/ec2-user/app",
+            "cd /home/ec2-user/app", 
+            "aws s3 cp s3://${{ secrets.S3_BUCKET }}/app.zip .",
+            "unzip -o app.zip",
+            "chmod +x startup.sh",
+            "./startup.sh"
+          ]' \
           --output text
