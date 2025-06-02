@@ -12,32 +12,32 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Setup AWS credentials
+    - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
-    - name: Zip application
+    - name: Zip the Flask app
       run: zip -r app.zip .
 
     - name: Upload ZIP to S3
       run: aws s3 cp app.zip s3://${{ secrets.S3_BUCKET }}/app.zip
 
-    - name: Deploy Flask App via SSM
-      run: >
-        aws ssm send-command
-        --document-name "AWS-RunShellScript"
-        --region ${{ secrets.AWS_REGION }}
-        --comment "Deploy Flask app"
-        --instance-ids ${{ secrets.INSTANCE_IDS }}
-        --parameters commands='[
-          "mkdir -p /home/ec2-user/app",
-          "cd /home/ec2-user/app",
-          "aws s3 cp s3://${{ secrets.S3_BUCKET }}/app.zip .",
-          "unzip -o app.zip",
-          "chmod +x startup.sh",
-          "./startup.sh"
-        ]'
-        --output text
+    - name: Deploy via SSM
+      run: |
+        aws ssm send-command \
+          --document-name "AWS-RunShellScript" \
+          --region "${{ secrets.AWS_REGION }}" \
+          --comment "Deploy Flask app" \
+          --instance-ids "${{ secrets.INSTANCE_IDS }}" \
+          --parameters commands='[
+            "mkdir -p /home/ec2-user/app",
+            "cd /home/ec2-user/app",
+            "aws s3 cp s3://${{ secrets.S3_BUCKET }}/app.zip .",
+            "unzip -o app.zip",
+            "chmod +x startup.sh",
+            "./startup.sh"
+          ]' \
+          --output text
