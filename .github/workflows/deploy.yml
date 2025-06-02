@@ -1,4 +1,4 @@
-name: Deploy Flask App to EC2 via SSM
+name: Deploy Flask App via SSM
 
 on:
   push:
@@ -17,27 +17,26 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-region: ap-south-1
 
-    - name: Zip the Flask app
+    - name: Zip the application
       run: zip -r app.zip .
 
     - name: Upload ZIP to S3
-      run: aws s3 cp app.zip s3://${{ secrets.S3_BUCKET }}/app.zip
+      run: aws s3 cp app.zip s3://${{ secrets.S3_BUCKET_NAME }}/app.zip
 
-    - name: Deploy via SSM
+    - name: Deploy to EC2 via SSM
       run: |
         aws ssm send-command \
+          --region ap-south-1 \
           --document-name "AWS-RunShellScript" \
-          --region "${{ secrets.AWS_REGION }}" \
           --comment "Deploy Flask app" \
-          --instance-ids "${{ secrets.INSTANCE_IDS }}" \
-          --parameters commands='[
+          --instance-ids i-0049c28f85741c2c4 i-0a6e32ba8e5fd47b3 \
+          --parameters 'commands=[
             "mkdir -p /home/ec2-user/app",
             "cd /home/ec2-user/app",
-            "aws s3 cp s3://${{ secrets.S3_BUCKET }}/app.zip .",
+            "aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/app.zip .",
             "unzip -o app.zip",
-            "chmod +x startup.sh",
-            "./startup.sh"
+            "bash startup.sh"
           ]' \
           --output text
